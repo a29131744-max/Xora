@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xora</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --bg:#212121;
+  --panel:#2f2f2f;
+  --panel2:#181818;
+  --text:#fff;
+  --muted:#aaa;
+  --border:#444;
+  --accent:#fff;
+  --accentText:#000;
+}
+
+body.light{
+  --bg:#f5f5f5;
+  --panel:#fff;
+  --panel2:#eee;
+  --text:#111;
+  --muted:#666;
+  --border:#ccc;
+  --accent:#111;
+  --accentText:#fff;
+}
+
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+  transition:.2s;
+}
+
+header{
+  height:58px;
+  padding:0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+
+.logo{
+  font-size:21px;
+  font-weight:bold;
+}
+
+.headerBtns{
+  display:flex;
+  gap:7px;
+}
+
+.iconBtn{
+  width:40px;
+  height:40px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--panel);
+  color:var(--text);
+  font-size:18px;
+}
+
+#chat{
+  flex:1;
+  overflow-y:auto;
+  padding:18px 10px;
+}
+
+.message{
+  max-width:850px;
+  margin:0 auto 18px;
+  line-height:1.6;
+  white-space:pre-wrap;
+  word-wrap:break-word;
+}
+
+.user{
+  background:var(--panel);
+  padding:12px 15px;
+  border-radius:15px;
+}
+
+.ai{
+  padding:10px 15px;
+}
+
+.label{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+.replyActions{
+  display:flex;
+  gap:7px;
+  margin-top:8px;
+}
+
+.smallBtn{
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:var(--text);
+  border-radius:8px;
+  padding:7px 10px;
+  font-size:13px;
+}
+
+.typing{
+  color:var(--muted);
+  font-style:italic;
+}
+
+#welcome{
+  text-align:center;
+  margin-top:22vh;
+  color:var(--muted);
+}
+
+#welcome h1{
+  color:var(--text);
+  font-size:32px;
+  margin-bottom:7px;
+}
+
+#bottom{
+  padding:9px 10px 13px;
+  border-top:1px solid var(--border);
+  background:var(--bg);
+}
+
+#inputBox{
+  max-width:850px;
+  margin:auto;
+  display:flex;
+  align-items:flex-end;
+  gap:7px;
+  padding:7px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+}
+
+textarea{
+  flex:1;
+  min-height:45px;
+  max-height:150px;
+  resize:none;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--text);
+  font-size:16px;
+  padding:10px;
+  font-family:Arial,sans-serif;
+}
+
+textarea::placeholder{
+  color:var(--muted);
+}
+
+.actionBtn{
+  width:45px;
+  height:45px;
+  border-radius:11px;
+  flex-shrink:0;
+  font-size:19px;
+}
+
+#mic{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+}
+
+#mic.listening{
+  background:#d32f2f;
+  color:white;
+}
+
+#send{
+  background:var(--accent);
+  color:var(--accentText);
+}
+
+#voiceBar{
+  max-width:850px;
+  margin:7px auto 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+#voiceStatus{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#settings{
+  position:fixed;
+  z-index:20;
+  right:10px;
+  top:63px;
+  width:275px;
+  max-height:75vh;
+  overflow-y:auto;
+  display:none;
+  padding:15px;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:15px;
+  box-shadow:0 10px 35px rgba(0,0,0,.4);
+}
+
+#settings.show{
+  display:block;
+}
+
+.settingTitle{
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.setting{
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.settingRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+select,
+input[type="range"]{
+  max-width:130px;
+}
+
+select{
+  background:var(--panel);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:5px;
+}
+
+.rangeValue{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.danger{
+  width:100%;
+  padding:10px;
+  margin-top:12px;
+  border:0;
+  border-radius:9px;
+  background:#c62828;
+  color:white;
+}
+
+.quickPrompts{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  max-width:850px;
+  margin:7px auto 0;
+  padding-bottom:2px;
+}
+
+.quick{
+  white-space:nowrap;
+  padding:7px 10px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:var(--text);
+  border-radius:12px;
+  font-size:12px;
+}
+
+@media(max-width:600px){
+  #settings{
+    width:calc(100% - 20px);
+  }
+
+  .message{
+    max-width:100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">✦ Xora</div>
+
+  <div class="headerBtns">
+    <button class="iconBtn" id="themeBtn">☀️</button>
+    <button class="iconBtn" id="settingsBtn">⚙️</button>
+  </div>
+</header>
+
+<div id="settings">
+
+  <div class="settingTitle">⚙️ Xora Settings</div>
+
+  <div class="setting">
+    <div class="settingRow">
+      <span>🔊 Auto Speak</span>
+      <input type="checkbox" id="autoSpeak">
+    </div>
+  </div>
+
+  <div class="setting">
+    <div class="settingRow">
+      <span>🗣️ Voice Language</span>
+
+      <select id="language">
+        <option value="en-IN">English 🇮🇳</option>
+        <option value="en-US">English 🇺🇸</option>
+        <option value="hi-IN">Hindi 🇮🇳</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="setting">
+    <div class="settingRow">
+      <span>🎚️ Speech Speed</span>
+      <span class="rangeValue" id="speedValue">1.0x</span>
+    </div>
+
+    <input
+      id="speed"
+      type="range"
+      min="0.5"
+      max="2"
+      step="0.1"
+      value="1"
+      style="width:100%"
+    >
+  </div>
+
+  <div class="setting">
+    <div class="settingRow">
+      <span>🗣️ Continuous Listening</span>
+      <input type="checkbox" id="continuous">
+    </div>
+  </div>
+
+  <button class="danger" id="clearChat">
+    🗑️ Clear Chat
+  </button>
+
+</div>
+
+<div id="chat"></div>
+
+<div id="bottom">
+
+  <div id="inputBox">
+
+    <textarea
+      id="message"
+      rows="1"
+      placeholder="Message Xora..."
+    ></textarea>
+
+    <button
+      class="actionBtn"
+      id="mic"
+      title="Voice input"
+    >🎙️</button>
+
+    <button
+      class="actionBtn"
+      id="send"
+      title="Send"
+    >↑</button>
+
+  </div>
+
+  <div id="voiceBar">
+    <span id="voiceStatus">Voice ready</span>
+
+    <button
+      class="smallBtn"
+      id="stopSpeaking"
+    >⏹ Stop Voice</button>
+  </div>
+
+  <div class="quickPrompts">
+    <button class="quick">💡 Tell me something interesting</button>
+    <button class="quick">😂 Make me laugh</button>
+    <button class="quick">🧠 Teach me something</button>
+    <button class="quick">🎮 Let's talk games</button>
+  </div>
+
+</div>
+
+<script>
+
+/* =====================================
+   ELEMENTS
+===================================== */
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("message");
+const send = document.getElementById("send");
+const mic = document.getElementById("mic");
+
+const settings = document.getElementById("settings");
+const settingsBtn = document.getElementById("settingsBtn");
+const themeBtn = document.getElementById("themeBtn");
+
+const autoSpeak = document.getElementById("autoSpeak");
+const language = document.getElementById("language");
+const speed = document.getElementById("speed");
+const speedValue = document.getElementById("speedValue");
+const continuous = document.getElementById("continuous");
+
+const voiceStatus = document.getElementById("voiceStatus");
+const stopSpeaking = document.getElementById("stopSpeaking");
+const clearChat = document.getElementById("clearChat");
+
+
+/* =====================================
+   STORAGE
+===================================== */
+
+let history = JSON.parse(
+  localStorage.getItem("xora_history") || "[]"
+);
+
+function saveHistory(){
+  localStorage.setItem(
+    "xora_history",
+    JSON.stringify(history)
+  );
+}
+
+
+/* =====================================
+   SETTINGS STORAGE
+===================================== */
+
+autoSpeak.checked =
+  localStorage.getItem("xora_auto") === "true";
+
+language.value =
+  localStorage.getItem("xora_language") || "en-IN";
+
+speed.value =
+  localStorage.getItem("xora_speed") || "1";
+
+continuous.checked =
+  localStorage.getItem("xora_continuous") === "true";
+
+speedValue.textContent =
+  Number(speed.value).toFixed(1) + "x";
+
+
+/* =====================================
+   WELCOME
+===================================== */
+
+function welcome(){
+
+  if(history.length) return;
+
+  chat.innerHTML = `
+    <div id="welcome">
+      <h1>✦ Xora</h1>
+      <div>Hey! 👋 I'm Xora.</div>
+      <div>What would you like to talk about?</div>
+    </div>
+  `;
+}
+
+welcome();
+
+
+/* =====================================
+   ADD MESSAGE
+===================================== */
+
+function addMessage(text,type,save=true){
+
+  document.getElementById("welcome")?.remove();
+
+  const div = document.createElement("div");
+
+  div.className =
+    "message " + type;
+
+  const label =
+    document.createElement("div");
+
+  label.className = "label";
+
+  label.textContent =
+    type === "user" ? "You" : "Xora";
+
+  const content =
+    document.createElement("div");
+
+  content.textContent = text;
+
+  div.appendChild(label);
+  div.appendChild(content);
+
+
+  if(type === "ai"){
+
+    const actions =
+      document.createElement("div");
+
+    actions.className =
+      "replyActions";
+
+
+    const speak =
+      document.createElement("button");
+
+    speak.className = "smallBtn";
+
+    speak.textContent = "🔊 Speak";
+
+    speak.onclick = () => {
+      speakText(text);
+    };
+
+
+    const copy =
+      document.createElement("button");
+
+    copy.className = "smallBtn";
+
+    copy.textContent = "📋 Copy";
+
+    copy.onclick = async () => {
+
+      try{
+
+        await navigator.clipboard
+          .writeText(text);
+
+        copy.textContent = "✓ Copied";
+
+        setTimeout(() => {
+          copy.textContent = "📋 Copy";
+        },1500);
+
+      }catch{
+        copy.textContent = "Copy failed";
+      }
+
+    };
+
+
+    actions.appendChild(speak);
+    actions.appendChild(copy);
+
+    div.appendChild(actions);
+  }
+
+
+  chat.appendChild(div);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+
+  if(save){
+
+    history.push({
+      type,
+      text
+    });
+
+    saveHistory();
+  }
+}
+
+
+/* =====================================
+   LOAD HISTORY
+===================================== */
+
+function loadHistory(){
+
+  chat.innerHTML = "";
+
+  if(!history.length){
+
+    welcome();
+
+    return;
+  }
+
+  history.forEach(item => {
+
+    addMessage(
+      item.text,
+      item.type,
+      false
+    );
+
+  });
+}
+
+loadHistory();
+
+
+/* =====================================
+   TEXT TO SPEECH
+===================================== */
+
+function speakText(text){
+
+  if(!("speechSynthesis" in window)){
+
+    voiceStatus.textContent =
+      "Speech is not supported";
+
+    return;
+  }
+
+  speechSynthesis.cancel();
+
+  const utterance =
+    new SpeechSynthesisUtterance(text);
+
+  utterance.lang =
+    language.value;
+
+  utterance.rate =
+    Number(speed.value);
+
+  utterance.pitch = 1;
+
+  utterance.onstart = () => {
+
+    voiceStatus.textContent =
+      "🔊 Xora is speaking...";
+
+    stopSpeaking.textContent =
+      "⏹ Stop Voice";
+  };
+
+  utterance.onend = () => {
+
+    voiceStatus.textContent =
+      "Voice ready";
+  };
+
+  utterance.onerror = () => {
+
+    voiceStatus.textContent =
+      "Voice error";
+  };
+
+  speechSynthesis.speak(
+    utterance
+  );
+}
+
+
+/* =====================================
+   STOP SPEAKING
+===================================== */
+
+stopSpeaking.onclick = () => {
+
+  if("speechSynthesis" in window){
+
+    speechSynthesis.cancel();
+
+    voiceStatus.textContent =
+      "Voice stopped";
+  }
+
+};
+
+
+/* =====================================
+   SEND MESSAGE
+===================================== */
+
+async function sendMessage(){
+
+  const text =
+    input.value.trim();
+
+  if(!text) return;
+
+  addMessage(
+    text,
+    "user"
+  );
+
+  input.value = "";
+
+  input.style.height = "45px";
+
+  send.disabled = true;
+  mic.disabled = true;
+
+
+  const typing =
+    document.createElement("div");
+
+  typing.className =
+    "message ai typing";
+
+  typing.id = "typing";
+
+  typing.textContent =
+    "Xora is thinking...";
+
+  chat.appendChild(typing);
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/chat",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:JSON.stringify({
+            message:text
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+    document
+      .getElementById("typing")
+      ?.remove();
+
+
+    if(!response.ok){
+
+      addMessage(
+        "Error: " +
+        (data.error ||
+        "Something went wrong."),
+        "ai"
+      );
+
+    }else{
+
+      const reply =
+        data.reply ||
+        "No response received.";
+
+      addMessage(
+        reply,
+        "ai"
+      );
+
+
+      if(autoSpeak.checked){
+
+        speakText(reply);
+
+      }
+
+    }
+
+  }catch(error){
+
+    document
+      .getElementById("typing")
+      ?.remove();
+
+    addMessage(
+      "Couldn't connect to Xora's server.",
+      "ai"
+    );
+  }
+
+
+  send.disabled = false;
+  mic.disabled = false;
+
+  input.focus();
+}
+
+
+/* =====================================
+   SEND EVENTS
+===================================== */
+
+send.onclick =
+  sendMessage;
+
+
+input.addEventListener(
+  "keydown",
+  event => {
+
+    if(
+      event.key === "Enter" &&
+      !event.shiftKey
+    ){
+
+      event.preventDefault();
+
+      sendMessage();
+    }
+
+  }
+);
+
+
+/* =====================================
+   TEXTAREA AUTO RESIZE
+===================================== */
+
+input.addEventListener(
+  "input",
+  () => {
+
+    input.style.height =
+      "45px";
+
+    input.style.height =
+      Math.min(
+        input.scrollHeight,
+        150
+      ) + "px";
+
+  }
+);
+
+
+/* =====================================
+   VOICE RECOGNITION
+===================================== */
+
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+
+let recognition = null;
+let listening = false;
+
+
+if(SpeechRecognition){
+
+  recognition =
+    new SpeechRecognition();
+
+  recognition.lang =
+    language.value;
+
+  recognition.interimResults =
+    false;
+
+  recognition.continuous =
+    false;
+
+
+  mic.onclick = () => {
+
+    if(listening){
+
+      recognition.stop();
+
+      return;
+    }
+
+    recognition.lang =
+      language.value;
+
+    recognition.continuous =
+      continuous.checked;
+
+    try{
+
+      recognition.start();
+
+    }catch(error){
+
+      console.log(error);
+
+    }
+
+  };
+
+
+  recognition.onstart = () => {
+
+    listening = true;
+
+    mic.classList.add(
+      "listening"
+    );
+
+    mic.textContent =
+      "⏹️";
+
+    voiceStatus.textContent =
+      "🎙️ Listening...";
+
+  };
+
+
+  recognition.onresult = event => {
+
+    let transcript = "";
+
+    for(
+      let i = event.resultIndex;
+      i < event.results.length;
+      i++
+    ){
+
+      if(
+        event.results[i].isFinal
+      ){
+
+        transcript +=
+          event.results[i][0]
+          .transcript;
+      }
+
+    }
+
+    if(transcript){
+
+      input.value =
+        transcript.trim();
+
+      input.dispatchEvent(
+        new Event("input")
+      );
+
+    }
+
+  };
+
+
+  recognition.onerror = event => {
+
+    console.log(
+      "Speech recognition:",
+      event.error
+    );
+
+    voiceStatus.textContent =
+      "🎙️ Voice error: " +
+      event.error;
+
+  };
+
+
+  recognition.onend = () => {
+
+    listening = false;
+
+    mic.classList.remove(
+      "listening"
+    );
+
+    mic.textContent =
+      "🎙️";
+
+    if(!continuous.checked){
+
+      voiceStatus.textContent =
+        "Voice ready";
+    }
+
+  };
+
+}else{
+
+  mic.onclick = () => {
+
+    alert(
+      "Voice input isn't supported by this browser."
+    );
+
+  };
+
+}
+
+
+/* =====================================
+   QUICK PROMPTS
+===================================== */
+
+document
+  .querySelectorAll(".quick")
+  .forEach(button => {
+
+    button.onclick = () => {
+
+      input.value =
+        button.textContent
+          .replace(/^[^\w]+/,"")
+          .trim();
+
+      input.dispatchEvent(
+        new Event("input")
+      );
+
+      input.focus();
+
+    };
+
+  });
+
+
+/* =====================================
+   CLEAR CHAT
+===================================== */
+
+clearChat.onclick = () => {
+
+  if(
+    !confirm(
+      "Clear all Xora chat history?"
+    )
+  ) return;
+
+  history = [];
+
+  localStorage.removeItem(
+    "xora_history"
+  );
+
+  speechSynthesis?.cancel();
+
+  loadHistory();
+
+  settings.classList.remove(
+    "show"
+  );
+};
+
+
+/* =====================================
+   SETTINGS
+===================================== */
+
+settingsBtn.onclick = event => {
+
+  event.stopPropagation();
+
+  settings.classList.toggle(
+    "show"
+  );
+
+};
+
+
+settings.onclick = event => {
+
+  event.stopPropagation();
+
+};
+
+
+document.addEventListener(
+  "click",
+  () => {
+
+    settings.classList.remove(
+      "show"
+    );
+
+  }
+);
+
+
+/* =====================================
+   AUTO SPEAK SETTING
+===================================== */
+
+autoSpeak.onchange = () => {
+
+  localStorage.setItem(
+    "xora_auto",
+    autoSpeak.checked
+  );
+
+};
+
+
+/* =====================================
+   LANGUAGE
+===================================== */
+
+language.onchange = () => {
+
+  localStorage.setItem(
+    "xora_language",
+    language.value
+  );
+
+  if(recognition){
+
+    recognition.lang =
+      language.value;
+  }
+
+};
+
+
+/* =====================================
+   SPEED
+===================================== */
+
+speed.oninput = () => {
+
+  speedValue.textContent =
+    Number(speed.value)
+      .toFixed(1) + "x";
+
+  localStorage.setItem(
+    "xora_speed",
+    speed.value
+  );
+
+};
+
+
+/* =====================================
+   CONTINUOUS LISTENING
+===================================== */
+
+continuous.onchange = () => {
+
+  localStorage.setItem(
+    "xora_continuous",
+    continuous.checked
+  );
+
+};
+
+
+/* =====================================
+   THEME
+===================================== */
+
+const savedTheme =
+  localStorage.getItem(
+    "xora_theme"
+  );
+
+if(savedTheme === "light"){
+
+  document.body.classList.add(
+    "light"
+  );
+
+  themeBtn.textContent =
+    "🌙";
+}
+
+
+themeBtn.onclick = () => {
+
+  document.body.classList.toggle(
+    "light"
+  );
+
+  const light =
+    document.body.classList.contains(
+      "light"
+    );
+
+  localStorage.setItem(
+    "xora_theme",
+    light ? "light" : "dark"
+  );
+
+  themeBtn.textContent =
+    light ? "🌙" : "☀️";
+};
+
+</script>
+
+</body>
+</html>
