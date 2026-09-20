@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 10000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const CHAT_MODEL = "gpt-5.6-luna";
-const MAX_MESSAGES = 30;
+const MAX_MESSAGES = 10;
 const MAX_PROMPT = 2000;
 
 // =====================================================
