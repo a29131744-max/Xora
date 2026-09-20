@@ -71,10 +71,9 @@ header{
   font-size:18px;
 }
 
-#chat{
-  flex:1;
-  overflow-y:auto;
-  padding:18px 10px;
+#imageBtn.active{
+  background:var(--accent);
+  color:var(--accentText);
 }
 
 .message{
@@ -106,6 +105,7 @@ header{
   display:flex;
   gap:7px;
   margin-top:8px;
+  flex-wrap:wrap;
 }
 
 .smallBtn{
@@ -132,6 +132,21 @@ header{
   color:var(--text);
   font-size:32px;
   margin-bottom:7px;
+}
+
+.generatedImage{
+  width:100%;
+  max-width:700px;
+  display:block;
+  margin-top:8px;
+  border-radius:14px;
+  border:1px solid var(--border);
+}
+
+.imagePrompt{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:8px;
 }
 
 #bottom{
@@ -296,6 +311,18 @@ select{
   font-size:12px;
 }
 
+.imageModeNotice{
+  max-width:850px;
+  margin:0 auto 6px;
+  color:var(--muted);
+  font-size:12px;
+  display:none;
+}
+
+.imageModeNotice.show{
+  display:block;
+}
+
 @media(max-width:600px){
   #settings{
     width:calc(100% - 20px);
@@ -304,19 +331,71 @@ select{
   .message{
     max-width:100%;
   }
+
+  .generatedImage{
+    max-width:100%;
+  }
 }
 </style>
 </head>
 
 <body>
 
+<!-- XORA NAME SETUP -->
+
+<div id="nameSetup"
+     style="display:none;position:fixed;inset:0;z-index:100000;background:var(--bg);align-items:center;justify-content:center;padding:20px;">
+
+  <div style="width:min(420px,100%);padding:28px;border-radius:20px;background:var(--panel);border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;">
+
+    <div style="font-size:48px;margin-bottom:10px;">✦</div>
+
+    <h2 style="margin:0 0 10px;">
+      Welcome to Xora
+    </h2>
+
+    <p style="opacity:.75;margin-bottom:22px;">
+      What should I call you?
+    </p>
+
+    <input
+      id="userNameInput"
+      type="text"
+      placeholder="Enter your name"
+      maxlength="30"
+      autocomplete="name"
+      style="width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:16px;outline:none;"
+    >
+
+    <button
+      id="saveUserName"
+      style="width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:var(--accent);color:white;font-size:16px;font-weight:600;"
+    >
+      Continue →
+    </button>
+
+  </div>
+
+</div>
 <header>
   <div class="logo">✦ Xora</div>
+<div class="headerBtns">
 
-  <div class="headerBtns">
-    <button class="iconBtn" id="themeBtn">☀️</button>
-    <button class="iconBtn" id="settingsBtn">⚙️</button>
-  </div>
+  <button class="iconBtn" id="newChat" title="New Chat">➕</button>
+
+  <button class="iconBtn" id="chatListBtn" title="My Chats">💬</button>
+
+  <button class="iconBtn" id="imageBtn" title="Generate Image">🎨</button>
+
+  <button class="iconBtn" id="themeBtn">☀️</button>
+
+  <button class="iconBtn" id="settingsBtn">⚙️</button>
+
+</div>
+
+<div id="chatList"
+     style="display:none;position:fixed;top:65px;right:10px;z-index:9999;width:min(360px,calc(100% - 20px));max-height:70vh;overflow-y:auto;padding:10px;border-radius:12px;background:var(--panel);border:1px solid var(--border);">
+</div>
 </header>
 
 <div id="settings">
@@ -376,6 +455,10 @@ select{
 
 <div id="bottom">
 
+  <div id="imageModeNotice" class="imageModeNotice">
+    🎨 Image mode is ON — describe the image you want Xora to create.
+  </div>
+
   <div id="inputBox">
 
     <textarea
@@ -412,6 +495,7 @@ select{
     <button class="quick">😂 Make me laugh</button>
     <button class="quick">🧠 Teach me something</button>
     <button class="quick">🎮 Let's talk games</button>
+    <button class="quick" id="imageQuick">🎨 Create an image</button>
   </div>
 
 </div>
@@ -430,6 +514,9 @@ const mic = document.getElementById("mic");
 const settings = document.getElementById("settings");
 const settingsBtn = document.getElementById("settingsBtn");
 const themeBtn = document.getElementById("themeBtn");
+const imageBtn = document.getElementById("imageBtn");
+const imageModeNotice =
+  document.getElementById("imageModeNotice");
 
 const autoSpeak = document.getElementById("autoSpeak");
 const language = document.getElementById("language");
@@ -441,6 +528,8 @@ const voiceStatus = document.getElementById("voiceStatus");
 const stopSpeaking = document.getElementById("stopSpeaking");
 const clearChat = document.getElementById("clearChat");
 
+let imageMode = false;
+
 
 /* =====================================
    STORAGE
@@ -451,10 +540,12 @@ let history = JSON.parse(
 );
 
 function saveHistory(){
+
   localStorage.setItem(
     "xora_history",
     JSON.stringify(history)
   );
+
 }
 
 
@@ -493,13 +584,14 @@ function welcome(){
       <div>What would you like to talk about?</div>
     </div>
   `;
+
 }
 
 welcome();
 
 
 /* =====================================
-   ADD MESSAGE
+   ADD TEXT MESSAGE
 ===================================== */
 
 function addMessage(text,type,save=true){
@@ -545,7 +637,9 @@ function addMessage(text,type,save=true){
     speak.textContent = "🔊 Speak";
 
     speak.onclick = () => {
+
       speakText(text);
+
     };
 
 
@@ -566,11 +660,15 @@ function addMessage(text,type,save=true){
         copy.textContent = "✓ Copied";
 
         setTimeout(() => {
+
           copy.textContent = "📋 Copy";
+
         },1500);
 
       }catch{
+
         copy.textContent = "Copy failed";
+
       }
 
     };
@@ -580,6 +678,7 @@ function addMessage(text,type,save=true){
     actions.appendChild(copy);
 
     div.appendChild(actions);
+
   }
 
 
@@ -597,7 +696,126 @@ function addMessage(text,type,save=true){
     });
 
     saveHistory();
+
   }
+
+}
+
+
+/* =====================================
+   ADD GENERATED IMAGE
+===================================== */
+
+function addGeneratedImage(
+  image,
+  prompt,
+  save=false
+){
+
+  document.getElementById("welcome")?.remove();
+
+  const div =
+    document.createElement("div");
+
+  div.className =
+    "message ai";
+
+  const label =
+    document.createElement("div");
+
+  label.className =
+    "label";
+
+  label.textContent =
+    "Xora 🎨";
+
+  const promptText =
+    document.createElement("div");
+
+  promptText.className =
+    "imagePrompt";
+
+  promptText.textContent =
+    "Prompt: " + prompt;
+
+  const img =
+    document.createElement("img");
+
+  img.className =
+    "generatedImage";
+
+  img.src =
+    image;
+
+  img.alt =
+    "Image generated by Xora";
+
+  img.loading =
+    "lazy";
+
+  const actions =
+    document.createElement("div");
+
+  actions.className =
+    "replyActions";
+
+  const openBtn =
+    document.createElement("button");
+
+  openBtn.className =
+    "smallBtn";
+
+  openBtn.textContent =
+    "🔎 Open Image";
+
+  openBtn.onclick = () => {
+
+    const win =
+      window.open();
+
+    if(win){
+
+      win.document.write(
+        `<title>Xora Image</title>
+         <style>
+         body{margin:0;background:#111;display:flex;justify-content:center;align-items:center;min-height:100vh}
+         img{max-width:100%;max-height:100vh}
+         </style>
+         <img src="${image}">
+        `
+      );
+
+    }
+
+  };
+
+  actions.appendChild(
+    openBtn
+  );
+
+  div.appendChild(
+    label
+  );
+
+  div.appendChild(
+    promptText
+  );
+
+  div.appendChild(
+    img
+  );
+
+  div.appendChild(
+    actions
+  );
+
+  chat.appendChild(
+    div
+  );
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
 }
 
 
@@ -614,6 +832,7 @@ function loadHistory(){
     welcome();
 
     return;
+
   }
 
   history.forEach(item => {
@@ -625,6 +844,7 @@ function loadHistory(){
     );
 
   });
+
 }
 
 loadHistory();
@@ -642,12 +862,15 @@ function speakText(text){
       "Speech is not supported";
 
     return;
+
   }
 
   speechSynthesis.cancel();
 
   const utterance =
-    new SpeechSynthesisUtterance(text);
+    new SpeechSynthesisUtterance(
+      text
+    );
 
   utterance.lang =
     language.value;
@@ -657,6 +880,7 @@ function speakText(text){
 
   utterance.pitch = 1;
 
+
   utterance.onstart = () => {
 
     voiceStatus.textContent =
@@ -664,23 +888,30 @@ function speakText(text){
 
     stopSpeaking.textContent =
       "⏹ Stop Voice";
+
   };
+
 
   utterance.onend = () => {
 
     voiceStatus.textContent =
       "Voice ready";
+
   };
+
 
   utterance.onerror = () => {
 
     voiceStatus.textContent =
       "Voice error";
+
   };
+
 
   speechSynthesis.speak(
     utterance
   );
+
 }
 
 
@@ -696,9 +927,185 @@ stopSpeaking.onclick = () => {
 
     voiceStatus.textContent =
       "Voice stopped";
+
   }
 
 };
+
+
+/* =====================================
+   IMAGE MODE
+===================================== */
+
+function setImageMode(enabled){
+
+  imageMode =
+    enabled;
+
+  imageBtn.classList.toggle(
+    "active",
+    imageMode
+  );
+
+  imageModeNotice.classList.toggle(
+    "show",
+    imageMode
+  );
+
+  if(imageMode){
+
+    input.placeholder =
+      "Describe the image you want...";
+
+    voiceStatus.textContent =
+      "🎨 Image mode";
+
+  }else{
+
+    input.placeholder =
+      "Message Xora...";
+
+    voiceStatus.textContent =
+      "Voice ready";
+
+  }
+
+}
+
+
+imageBtn.onclick = () => {
+
+  setImageMode(
+    !imageMode
+  );
+
+  input.focus();
+
+};
+
+
+/* =====================================
+   GENERATE IMAGE
+===================================== */
+
+async function generateImage(){
+
+  const prompt =
+    input.value.trim();
+
+  if(!prompt) return;
+
+  addMessage(
+    prompt,
+    "user"
+  );
+
+  input.value = "";
+
+  input.style.height =
+    "45px";
+
+  send.disabled = true;
+  mic.disabled = true;
+  imageBtn.disabled = true;
+
+  const typing =
+    document.createElement("div");
+
+  typing.className =
+    "message ai typing";
+
+  typing.id =
+    "imageTyping";
+
+  typing.textContent =
+    "🎨 Xora is creating your image...";
+
+  chat.appendChild(
+    typing
+  );
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/generate-image",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:JSON.stringify({
+            prompt:prompt
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+    document
+      .getElementById("imageTyping")
+      ?.remove();
+
+
+    if(!response.ok){
+
+      addMessage(
+        "Image error: " +
+        (
+          data.error ||
+          "Something went wrong."
+        ),
+        "ai"
+      );
+
+    }else if(!data.image){
+
+      addMessage(
+        "Xora didn't receive an image from the server.",
+        "ai"
+      );
+
+    }else{
+
+      addGeneratedImage(
+        data.image,
+        data.revisedPrompt ||
+          prompt
+      );
+
+    }
+
+  }catch(error){
+
+    document
+      .getElementById("imageTyping")
+      ?.remove();
+
+    addMessage(
+      "Couldn't connect to Xora's image server.",
+      "ai"
+    );
+
+  }
+
+
+  send.disabled = false;
+  mic.disabled = false;
+  imageBtn.disabled = false;
+
+  input.focus();
+
+}
 
 
 /* =====================================
@@ -712,6 +1119,16 @@ async function sendMessage(){
 
   if(!text) return;
 
+
+  if(imageMode){
+
+    await generateImage();
+
+    return;
+
+  }
+
+
   addMessage(
     text,
     "user"
@@ -719,7 +1136,8 @@ async function sendMessage(){
 
   input.value = "";
 
-  input.style.height = "45px";
+  input.style.height =
+    "45px";
 
   send.disabled = true;
   mic.disabled = true;
@@ -731,12 +1149,15 @@ async function sendMessage(){
   typing.className =
     "message ai typing";
 
-  typing.id = "typing";
+  typing.id =
+    "typing";
 
   typing.textContent =
     "Xora is thinking...";
 
-  chat.appendChild(typing);
+  chat.appendChild(
+    typing
+  );
 
   chat.scrollTop =
     chat.scrollHeight;
@@ -774,8 +1195,10 @@ async function sendMessage(){
 
       addMessage(
         "Error: " +
-        (data.error ||
-        "Something went wrong."),
+        (
+          data.error ||
+          "Something went wrong."
+        ),
         "ai"
       );
 
@@ -793,7 +1216,9 @@ async function sendMessage(){
 
       if(autoSpeak.checked){
 
-        speakText(reply);
+        speakText(
+          reply
+        );
 
       }
 
@@ -809,6 +1234,7 @@ async function sendMessage(){
       "Couldn't connect to Xora's server.",
       "ai"
     );
+
   }
 
 
@@ -816,6 +1242,7 @@ async function sendMessage(){
   mic.disabled = false;
 
   input.focus();
+
 }
 
 
@@ -839,6 +1266,7 @@ input.addEventListener(
       event.preventDefault();
 
       sendMessage();
+
     }
 
   }
@@ -896,18 +1324,31 @@ if(SpeechRecognition){
 
   mic.onclick = () => {
 
+    if(imageMode){
+
+      voiceStatus.textContent =
+        "🎨 Type an image description first";
+
+      return;
+
+    }
+
+
     if(listening){
 
       recognition.stop();
 
       return;
+
     }
+
 
     recognition.lang =
       language.value;
 
     recognition.continuous =
       continuous.checked;
+
 
     try{
 
@@ -955,10 +1396,12 @@ if(SpeechRecognition){
 
         transcript +=
           event.results[i][0]
-          .transcript;
+            .transcript;
+
       }
 
     }
+
 
     if(transcript){
 
@@ -999,10 +1442,14 @@ if(SpeechRecognition){
     mic.textContent =
       "🎙️";
 
+
     if(!continuous.checked){
 
       voiceStatus.textContent =
-        "Voice ready";
+        imageMode
+          ? "🎨 Image mode"
+          : "Voice ready";
+
     }
 
   };
@@ -1030,6 +1477,25 @@ document
 
     button.onclick = () => {
 
+      if(button.id === "imageQuick"){
+
+        setImageMode(
+          true
+        );
+
+        input.value =
+          "";
+
+        input.placeholder =
+          "Describe the image you want...";
+
+        input.focus();
+
+        return;
+
+      }
+
+
       input.value =
         button.textContent
           .replace(/^[^\w]+/,"")
@@ -1045,6 +1511,183 @@ document
 
   });
 
+/* =====================================
+   CHAT MANAGEMENT
+===================================== */
+
+const newChat = document.getElementById("newChat");
+const chatListBtn = document.getElementById("chatListBtn");
+const chatList = document.getElementById("chatList");
+
+let savedChats = JSON.parse(
+  localStorage.getItem("xora_chats") || "[]"
+);
+
+function saveChats(){
+  localStorage.setItem(
+    "xora_chats",
+    JSON.stringify(savedChats)
+  );
+}
+
+function renderChatList(){
+
+  chatList.innerHTML = "";
+
+  if(!savedChats.length){
+
+    chatList.innerHTML =
+      '<div style="padding:10px;opacity:.7;">No saved chats yet.</div>';
+
+    return;
+  }
+
+  savedChats.forEach(saved => {
+
+    const item = document.createElement("div");
+
+    item.style.cssText =
+      "display:flex;gap:6px;margin-top:6px;align-items:center;";
+
+    const open = document.createElement("button");
+
+    open.className = "actionBtn";
+    open.style.cssText =
+      "flex:1;text-align:left;";
+    open.textContent =
+      "💬 " + saved.title;
+
+    open.onclick = () => {
+
+      history = [...saved.history];
+
+      localStorage.setItem(
+        "xora_history",
+        JSON.stringify(history)
+      );
+
+      loadHistory();
+
+      chatList.style.display = "none";
+    };
+
+    const rename = document.createElement("button");
+
+    rename.className = "actionBtn";
+    rename.textContent = "✏️";
+
+    rename.onclick = () => {
+
+      const newTitle =
+        prompt(
+          "Rename chat:",
+          saved.title
+        );
+
+      if(!newTitle || !newTitle.trim()) return;
+
+      saved.title =
+        newTitle.trim();
+
+      saveChats();
+
+      renderChatList();
+    };
+
+    const del = document.createElement("button");
+
+    del.className = "actionBtn";
+    del.textContent = "🗑️";
+
+    del.onclick = () => {
+
+      if(
+        !confirm(
+          `Delete "${saved.title}"?`
+        )
+      ) return;
+
+      savedChats =
+        savedChats.filter(
+          chat => chat.id !== saved.id
+        );
+
+      saveChats();
+
+      renderChatList();
+    };
+
+    item.appendChild(open);
+    item.appendChild(rename);
+    item.appendChild(del);
+
+    chatList.appendChild(item);
+  });
+}
+
+
+newChat.onclick = () => {
+
+  if(history.length){
+
+    const saveCurrent =
+      confirm(
+        "Save this chat before starting a new one?"
+      );
+
+    if(saveCurrent){
+
+      const title =
+        prompt(
+          "Enter a name for this chat:"
+        );
+
+      if(title && title.trim()){
+
+        savedChats.push({
+
+          id: Date.now().toString(),
+
+          title: title.trim(),
+
+          history: [...history]
+
+        });
+
+        saveChats();
+      }
+    }
+  }
+
+  history = [];
+
+  localStorage.removeItem(
+    "xora_history"
+  );
+
+  speechSynthesis?.cancel();
+
+  loadHistory();
+
+  chatList.style.display = "none";
+};
+
+
+chatListBtn.onclick = () => {
+
+  if(chatList.style.display === "none"){
+
+    renderChatList();
+
+    chatList.style.display = "block";
+
+  }else{
+
+    chatList.style.display = "none";
+
+  }
+
+};
 
 /* =====================================
    CLEAR CHAT
@@ -1058,11 +1701,13 @@ clearChat.onclick = () => {
     )
   ) return;
 
+
   history = [];
 
   localStorage.removeItem(
     "xora_history"
   );
+
 
   speechSynthesis?.cancel();
 
@@ -1071,6 +1716,7 @@ clearChat.onclick = () => {
   settings.classList.remove(
     "show"
   );
+
 };
 
 
@@ -1133,10 +1779,12 @@ language.onchange = () => {
     language.value
   );
 
+
   if(recognition){
 
     recognition.lang =
       language.value;
+
   }
 
 };
@@ -1151,6 +1799,7 @@ speed.oninput = () => {
   speedValue.textContent =
     Number(speed.value)
       .toFixed(1) + "x";
+
 
   localStorage.setItem(
     "xora_speed",
@@ -1183,6 +1832,7 @@ const savedTheme =
     "xora_theme"
   );
 
+
 if(savedTheme === "light"){
 
   document.body.classList.add(
@@ -1191,6 +1841,7 @@ if(savedTheme === "light"){
 
   themeBtn.textContent =
     "🌙";
+
 }
 
 
@@ -1200,20 +1851,90 @@ themeBtn.onclick = () => {
     "light"
   );
 
+
   const light =
     document.body.classList.contains(
       "light"
     );
 
+
   localStorage.setItem(
     "xora_theme",
-    light ? "light" : "dark"
+    light
+      ? "light"
+      : "dark"
   );
 
-  themeBtn.textContent =
-    light ? "🌙" : "☀️";
-};
 
+  themeBtn.textContent =
+    light
+      ? "🌙"
+      : "☀️";
+
+};
+/* =====================================
+   XORA USER NAME
+===================================== */
+
+const nameSetup = document.getElementById("nameSetup");
+const userNameInput = document.getElementById("userNameInput");
+const saveUserName = document.getElementById("saveUserName");
+
+let xoraUserName =
+  localStorage.getItem("xora_user_name") || "";
+
+function showNameSetup(){
+
+  if(!xoraUserName.trim()){
+
+    nameSetup.style.display = "flex";
+
+    setTimeout(() => {
+      userNameInput.focus();
+    }, 100);
+
+  }
+
+}
+
+function saveName(){
+
+  const name =
+    userNameInput.value.trim();
+
+  if(!name){
+
+    alert("Please enter your name.");
+
+    userNameInput.focus();
+
+    return;
+  }
+
+  xoraUserName = name;
+
+  localStorage.setItem(
+    "xora_user_name",
+    xoraUserName
+  );
+
+  nameSetup.style.display = "none";
+}
+
+saveUserName.onclick = saveName;
+
+userNameInput.addEventListener(
+  "keydown",
+  e => {
+
+    if(e.key === "Enter"){
+      saveName();
+    }
+
+  }
+);
+
+showNameSetup();
 </script>
 
 </body>

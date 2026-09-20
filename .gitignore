@@ -1,4 +1,12 @@
 node_modules/
 .env
+
+xora-memory.json
+xora-reminders.json
+
 *.backup*
-public/index.html.before-history
+*.v2-backup
+*.before-*
+*.v2-tested
+
+main
