@@ -19,9 +19,8 @@ app.get("/", (req, res) => {
 // =====================================================
 
 const PORT = process.env.PORT || 10000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-const CHAT_MODEL = "gpt-5.6-luna";
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const CHAT_MODEL = "openai/gpt-oss-20b";
 const MAX_MESSAGES = 10;
 const MAX_PROMPT = 2000;
 
@@ -197,18 +196,18 @@ while still being helpful and accurate.
 // =====================================================
 
 async function openAIRequest(body) {
-  if (!OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not configured.");
+if (!GROQ_API_KEY) {
+throw new Error("GROQ_API_KEY is not configured.");
   }
 
   const response = await fetch(
-    "https://api.openai.com/v1/responses",
+"https://api.groq.com/openai/v1/responses",
     {
       method: "POST",
 
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
+"Authorization": `Bearer ${GROQ_API_KEY}`
       },
 
       body: JSON.stringify(body)
@@ -312,17 +311,10 @@ ${memoryText}
       ...conversation
     ];
 
-    const data = await openAIRequest({
-      model: CHAT_MODEL,
-      input: input,
-
-      // Allows Xora to retrieve current information when needed.
-      tools: [
-        {
-          type: "web_search"
-        }
-      ]
-    });
+const data = await openAIRequest({
+  model: CHAT_MODEL,
+  input: input
+});
 
     const reply = getResponseText(data);
 
