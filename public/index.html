@@ -505,7 +505,113 @@ select{
 /* =====================================
    ELEMENTS
 ===================================== */
+// =====================================================
+// MARKDOWN RENDERER
+// =====================================================
 
+function escapeHTML(text){
+
+  return String(text)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+function renderMarkdown(text){
+
+  let source = String(text ?? "");
+
+  const codeBlocks = [];
+
+  source = source.replace(/```([\s\S]*?)```/g,(match,code) => {
+
+    const index = codeBlocks.length;
+
+    codeBlocks.push(
+      `<pre><code>${escapeHTML(code.trim())}</code></pre>`
+    );
+
+    return `@@CODEBLOCK${index}@@`;
+
+  });
+
+  let html = escapeHTML(source);
+
+  html = html.replace(
+    /^### (.+)$/gm,
+    "<h3>$1</h3>"
+  );
+
+  html = html.replace(
+    /^## (.+)$/gm,
+    "<h2>$1</h2>"
+  );
+
+  html = html.replace(
+    /^# (.+)$/gm,
+    "<h1>$1</h1>"
+  );
+
+  html = html.replace(
+    /^\s*[-*] (.+)$/gm,
+    "<li>$1</li>"
+  );
+
+  html = html.replace(
+    /(<li>.*<\/li>\n?)+/g,
+    "<ul>$&</ul>"
+  );
+
+  html = html.replace(
+    /^\s*(\d+)\. (.+)$/gm,
+    "<li>$2</li>"
+  );
+
+  html = html.replace(
+    /\*\*(.+?)\*\*/g,
+    "<strong>$1</strong>"
+  );
+
+  html = html.replace(
+    /__(.+?)__/g,
+    "<strong>$1</strong>"
+  );
+
+  html = html.replace(
+    /(?<!\*)\*([^*\n]+)\*(?!\*)/g,
+    "<em>$1</em>"
+  );
+
+  html = html.replace(
+    /(?<!_)_([^_\n]+)_(?!_)/g,
+    "<em>$1</em>"
+  );
+
+  html = html.replace(
+    /`([^`\n]+)`/g,
+    "<code>$1</code>"
+  );
+
+  html = html.replace(
+    /\n/g,
+    "<br>"
+  );
+
+  codeBlocks.forEach((block,index) => {
+
+    html = html.replace(
+      `@@CODEBLOCK${index}@@`,
+      block
+    );
+
+  });
+
+  return html;
+
+}
 const chat = document.getElementById("chat");
 const input = document.getElementById("message");
 const send = document.getElementById("send");
@@ -614,7 +720,7 @@ function addMessage(text,type,save=true){
   const content =
     document.createElement("div");
 
-  content.textContent = text;
+content.innerHTML = renderMarkdown(text);
 
   div.appendChild(label);
   div.appendChild(content);
